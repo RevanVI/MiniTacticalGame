@@ -2,19 +2,19 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.Events;
 
 public class Character : MonoBehaviour
 {
     public int MoveDistance;
     public int Health;
     public int Damage;
-
     public float Speed;
-
-    public Tilemap CurrentTilemap;
 
     private Vector2Int _coords;
     private Vector2Int _targetCoords;
+
+    public UnityEvent OnMoveEnded;
 
     public Vector2Int TargetCoords
     {
@@ -44,16 +44,26 @@ public class Character : MonoBehaviour
     {
         if (!_isOnPlace)
         {
-            Vector3 targetWorldCoords = CurrentTilemap.GetCellCenterWorld(new Vector3Int(_targetCoords.x, _targetCoords.y, 0));
+            Vector3 targetWorldCoords = GridSystem.Instance.CurrentTilemap.GetCellCenterWorld(new Vector3Int(_targetCoords.x, _targetCoords.y, 0));
             Vector3 rotation = (targetWorldCoords - _rb2d.transform.position).normalized;
             float distance = (targetWorldCoords - _rb2d.transform.position).magnitude;
-            _rb2d.transform.position = _rb2d.transform.position + rotation * distance * Speed * Time.deltaTime;
+            Vector3 newWorldCoords = _rb2d.transform.position + rotation * distance * Speed * Time.fixedDeltaTime;
+            //check overstepping
+            if ((newWorldCoords - _rb2d.transform.position).magnitude > distance)
+            {
+                newWorldCoords = targetWorldCoords;
+            }
 
-            Vector3Int newCoords = GridSystem.Instance.GetTilemapCoordsFromWorld(GridSystem.Instance.CurrentTilemap, _rb2d.transform.position);
-            if (newCoords.x == _targetCoords.x && newCoords.y == _targetCoords.y)
+            _rb2d.transform.position = newWorldCoords;
+
+            //check end of moving 
+            if (distance < 0.01f)
             {
                 _isOnPlace = true;
+                OnMoveEnded.Invoke();
             }
+            //set new tilemap coordinations
+            Vector3Int newCoords = GridSystem.Instance.GetTilemapCoordsFromWorld(GridSystem.Instance.CurrentTilemap, _rb2d.transform.position);
             _coords.x = newCoords.x;
             _coords.y = newCoords.y;
         }

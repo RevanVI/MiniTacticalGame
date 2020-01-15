@@ -11,7 +11,9 @@ public class GridSystem : MonoBehaviour
     public Camera CurrentCamera;
     public Tile MoveTile;
 
-    public Character CurCharacter;
+    public PlayerController CurCharacter;
+
+    private bool _blockClick;
 
     private void Awake()
     {
@@ -25,16 +27,28 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-
-
     private void Start()
     {
+        _blockClick = false;
+        CurCharacter.OnMoveEnded.AddListener(EnableClick);
         Debug.Log($"Tilemap data:\n ");
         Debug.Log($"Bounds: ({CurrentTilemap.cellBounds.x}, {CurrentTilemap.cellBounds.x})\n");
         Debug.Log($"Origin: ({CurrentTilemap.origin.x}, {CurrentTilemap.origin.x})\n");
         Debug.Log($"Size : {CurrentTilemap.size})");
     }
 
+    private void Update()
+    {
+        if (Input.GetMouseButtonDown(0) && !_blockClick)
+        {
+            _blockClick = true;
+            Vector3Int cellPosition = GetTilemapCoordsFromScreen(CurrentTilemap, Input.mousePosition);
+            PrintTileInfo(cellPosition);
+            Movemap.ClearAllTiles();
+            PrintMoveMap(3, cellPosition);
+            CurCharacter.TargetCoords = new Vector2Int(cellPosition.x, cellPosition.y);
+        }
+    }
 
     private void PrintMoveMap(int moveDistance, Vector3Int position)
     {
@@ -102,7 +116,6 @@ public class GridSystem : MonoBehaviour
 
     }
 
-
     public void PrintTileInfo(Vector3Int cellPosition)
     {
         TileBase tile = CurrentTilemap.GetTile(cellPosition);
@@ -131,16 +144,9 @@ public class GridSystem : MonoBehaviour
         return tilemap.WorldToCell(worldPosition);
     }
 
-    private void Update()
+    public void EnableClick()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Vector3Int cellPosition = GetTilemapCoordsFromScreen(CurrentTilemap, Input.mousePosition);
-            PrintTileInfo(cellPosition);
-            Movemap.ClearAllTiles();
-            PrintMoveMap(3, cellPosition);
-            CurCharacter.TargetCoords = new Vector2Int(cellPosition.x, cellPosition.y);
-        }
+        _blockClick = false;
     }
 
 }
