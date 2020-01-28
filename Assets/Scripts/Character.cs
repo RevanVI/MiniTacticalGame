@@ -11,7 +11,7 @@ public class Character : MonoBehaviour
     public int Damage;
     public float Speed;
 
-    private Vector2Int _coords;
+    public Vector2Int _coords;
     private Vector2Int _targetCoords;
 
     public UnityEvent OnMoveEnded;
@@ -47,7 +47,7 @@ public class Character : MonoBehaviour
             Vector3 targetWorldCoords = GridSystem.Instance.CurrentTilemap.GetCellCenterWorld(new Vector3Int(_targetCoords.x, _targetCoords.y, 0));
             Vector3 rotation = (targetWorldCoords - _rb2d.transform.position).normalized;
             float distance = (targetWorldCoords - _rb2d.transform.position).magnitude;
-            Vector3 newWorldCoords = _rb2d.transform.position + rotation * distance * Speed * Time.fixedDeltaTime;
+            Vector3 newWorldCoords = _rb2d.transform.position + rotation * /*distance* */ Speed * Time.fixedDeltaTime;
             //check overstepping
             if ((newWorldCoords - _rb2d.transform.position).magnitude > distance)
             {

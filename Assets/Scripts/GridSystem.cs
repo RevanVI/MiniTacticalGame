@@ -35,6 +35,9 @@ public class GridSystem : MonoBehaviour
         Debug.Log($"Bounds: ({CurrentTilemap.cellBounds.x}, {CurrentTilemap.cellBounds.x})\n");
         Debug.Log($"Origin: ({CurrentTilemap.origin.x}, {CurrentTilemap.origin.x})\n");
         Debug.Log($"Size : {CurrentTilemap.size})");
+
+        CurCharacter._coords = new Vector2Int(-3, 0);
+        PrintMoveMap(3, new Vector3Int(CurCharacter._coords.x, CurCharacter._coords.y, 0));
     }
 
     private void Update()
@@ -44,76 +47,63 @@ public class GridSystem : MonoBehaviour
             _blockClick = true;
             Vector3Int cellPosition = GetTilemapCoordsFromScreen(CurrentTilemap, Input.mousePosition);
             PrintTileInfo(cellPosition);
-            Movemap.ClearAllTiles();
-            PrintMoveMap(3, cellPosition);
-            CurCharacter.TargetCoords = new Vector2Int(cellPosition.x, cellPosition.y);
+            List<Vector3Int> moveMap = GetMoveMap(3, new Vector3Int(CurCharacter._coords.x, CurCharacter._coords.y, 0));
+            int index = moveMap.IndexOf(cellPosition);
+            if (index != -1)
+            {
+                Movemap.ClearAllTiles();
+                PrintMoveMap(3, cellPosition);
+                CurCharacter.TargetCoords = new Vector2Int(cellPosition.x, cellPosition.y);
+            }
+            else
+            {
+                Debug.Log("Cell out of move map");
+                _blockClick = false;
+            }
         }
+    }
+
+    private List<Vector3Int> GetMoveMap(int moveDistance, Vector3Int position)
+    {
+        List<Vector3Int> map = new List<Vector3Int>();
+        Vector3Int curPosition = position;
+
+        for (int rotation = 0; rotation < 4; ++rotation)
+        {
+            Vector3Int moveVector;
+            TileBase tile;
+            if (rotation == 0)
+                moveVector = new Vector3Int(0, 1, 0);
+            else if (rotation == 1)
+                moveVector = new Vector3Int(1, 0, 0);
+            else if (rotation == 2)
+                moveVector = new Vector3Int(0, -1, 0);
+            else
+                moveVector = new Vector3Int(-1, 0, 0);
+            for (int step = 1; step <= moveDistance; ++step)
+            {
+                curPosition += moveVector;
+                tile = CurrentTilemap.GetTile(curPosition);
+                if (tile is RoadTile)
+                {
+                    RoadTile roadTile = tile as RoadTile;
+                    if (roadTile.isBlock)
+                        break;
+                }
+                map.Add(curPosition);
+            }
+            curPosition = position;
+        }
+        return map;
     }
 
     private void PrintMoveMap(int moveDistance, Vector3Int position)
     {
-        Vector3Int printPosition = position;
-        TileBase tile = CurrentTilemap.GetTile(printPosition);
-        if (tile is RoadTile)
+        List<Vector3Int> mapToPaint = GetMoveMap(moveDistance, position);
+        foreach (var tilePosition in mapToPaint)
         {
-            RoadTile roadTile = tile as RoadTile;
-            if (roadTile.isBlock)
-                return;
+            Movemap.SetTile(tilePosition, MoveTile);
         }
-        //paint tiles on x axis starting from center point
-        for (printPosition.x = position.x - 1; printPosition.x >= position.x - moveDistance; --printPosition.x)
-        {
-            tile = CurrentTilemap.GetTile(printPosition);
-            if (tile is RoadTile)
-            {
-                RoadTile roadTile = tile as RoadTile;
-                if (roadTile.isBlock)
-                    break;
-            }
-            Movemap.SetTile(printPosition, MoveTile);
-            Debug.Log($"<x: Print position ({printPosition.x}, {printPosition.y})");
-        }
-        printPosition = position;
-        for (printPosition.x = position.x + 1; printPosition.x <= position.x + moveDistance; ++printPosition.x)
-        {
-            tile = CurrentTilemap.GetTile(printPosition);
-            if (tile is RoadTile)
-            {
-                RoadTile roadTile = tile as RoadTile;
-                if (roadTile.isBlock)
-                    break;
-            }
-            Movemap.SetTile(printPosition, MoveTile);
-            Debug.Log($">x: Print position ({printPosition.x}, {printPosition.y})");
-        }
-        printPosition = position;
-        //print tiles on y axis
-        for (printPosition.y = position.y - 1; printPosition.y >= position.y - moveDistance; --printPosition.y)
-        {
-            tile = CurrentTilemap.GetTile(printPosition);
-            if (tile is RoadTile)
-            {
-                RoadTile roadTile = tile as RoadTile;
-                if (roadTile.isBlock)
-                    break;
-            }
-            Movemap.SetTile(printPosition, MoveTile);
-            Debug.Log($"<y: Print position ({printPosition.x}, {printPosition.y})");
-        }
-        printPosition = position;
-        for (printPosition.y = position.y + 1; printPosition.y <= position.y + moveDistance; ++printPosition.y)
-        {
-            tile = CurrentTilemap.GetTile(printPosition);
-            if (tile is RoadTile)
-            {
-                RoadTile roadTile = tile as RoadTile;
-                if (roadTile.isBlock)
-                    break;
-            }
-            Movemap.SetTile(printPosition, MoveTile);
-            Debug.Log($">y: Print position ({printPosition.x}, {printPosition.y})");
-        }
-
     }
 
     public void PrintTileInfo(Vector3Int cellPosition)
@@ -148,5 +138,7 @@ public class GridSystem : MonoBehaviour
     {
         _blockClick = false;
     }
+
+
 
 }
