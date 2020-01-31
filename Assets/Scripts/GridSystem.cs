@@ -11,10 +11,10 @@ public class GridSystem : MonoBehaviour
     public Camera CurrentCamera;
     public Tile MoveTile;
 
-    public PlayerController CurCharacter;
+    public RoadTile TakenTile;
+    public RoadTile CommonTile;
 
-    private bool _blockClick;
-
+    private List<Vector3Int> _moveMap;
     private void Awake()
     {
         if (Instance != null)
@@ -29,41 +29,23 @@ public class GridSystem : MonoBehaviour
 
     private void Start()
     {
-        _blockClick = false;
-        CurCharacter.OnMoveEnded.AddListener(EnableClick);
         Debug.Log($"Tilemap data:\n ");
         Debug.Log($"Bounds: ({CurrentTilemap.cellBounds.x}, {CurrentTilemap.cellBounds.x})\n");
         Debug.Log($"Origin: ({CurrentTilemap.origin.x}, {CurrentTilemap.origin.x})\n");
         Debug.Log($"Size : {CurrentTilemap.size})");
-
-        CurCharacter._coords = new Vector2Int(-3, 0);
-        PrintMoveMap(3, new Vector3Int(CurCharacter._coords.x, CurCharacter._coords.y, 0));
     }
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0) && !_blockClick)
+        if (Input.GetMouseButtonDown(0))
         {
-            _blockClick = true;
-            Vector3Int cellPosition = GetTilemapCoordsFromScreen(CurrentTilemap, Input.mousePosition);
-            PrintTileInfo(cellPosition);
-            List<Vector3Int> moveMap = GetMoveMap(3, new Vector3Int(CurCharacter._coords.x, CurCharacter._coords.y, 0));
-            int index = moveMap.IndexOf(cellPosition);
-            if (index != -1)
-            {
-                Movemap.ClearAllTiles();
-                PrintMoveMap(3, cellPosition);
-                CurCharacter.TargetCoords = new Vector2Int(cellPosition.x, cellPosition.y);
-            }
-            else
-            {
-                Debug.Log("Cell out of move map");
-                _blockClick = false;
-            }
+            Vector3Int cellPosition = GetTilemapCoordsFromScreen(GridSystem.Instance.CurrentTilemap, Input.mousePosition);
+            TileBase tile = CurrentTilemap.GetTile(cellPosition);
+            Debug.Log($"Tile at position ({cellPosition.x}, {cellPosition.y}) is RoadTile: {tile is RoadTile}");
         }
     }
 
-    private List<Vector3Int> GetMoveMap(int moveDistance, Vector3Int position)
+    public List<Vector3Int> GetMoveMap(int moveDistance, Vector3Int position)
     {
         List<Vector3Int> map = new List<Vector3Int>();
         Vector3Int curPosition = position;
@@ -88,6 +70,8 @@ public class GridSystem : MonoBehaviour
                 {
                     RoadTile roadTile = tile as RoadTile;
                     if (roadTile.isBlock)
+                        break;
+                    if (roadTile.isTaken)
                         break;
                 }
                 map.Add(curPosition);
@@ -134,11 +118,40 @@ public class GridSystem : MonoBehaviour
         return tilemap.WorldToCell(worldPosition);
     }
 
-    public void EnableClick()
+    public void PrintCharacterMoveMap(Character character)
     {
-        _blockClick = false;
+        _moveMap = GetMoveMap(character.Length, character.Coords);
+        PrintMoveMap(character.Length, character.Coords);
     }
 
+    public bool IsMovementEnable(Vector3Int targetPosition)
+    {
+        if (_moveMap.IndexOf(targetPosition) != -1)
+            return true;
+        return false;
+    }
 
+    public void TakeTile(Vector3Int coords)
+    {
+        CurrentTilemap.SetTile(coords, TakenTile);
+    }
 
+    public void ReleaseTile(Vector3Int coords)
+    {
+        CurrentTilemap.SetTile(coords, CommonTile);
+    }
+
+    public int IsTileAvailable(Vector3Int coords)
+    {
+        TileBase tile = CurrentTilemap.GetTile(coords);
+        if (tile is RoadTile)
+        {
+            RoadTile roadTile = tile as RoadTile;
+            if (roadTile.isBlock)
+                return 1;
+            if (roadTile.isTaken)
+                return 2;
+        }
+        return 0;
+    }
 }

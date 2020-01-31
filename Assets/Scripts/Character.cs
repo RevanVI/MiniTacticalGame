@@ -10,41 +10,50 @@ public class Character : MonoBehaviour
     public int Health;
     public int Damage;
     public float Speed;
+    public int Length;
 
-    public Vector2Int _coords;
-    private Vector2Int _targetCoords;
+    public Vector3Int Coords;
+    private Vector3Int _targetCoords;
 
     public UnityEvent OnMoveEnded;
+    public UnityEvent OnDamageTaken;
+    public UnityEvent OnDie;
 
-    public Vector2Int TargetCoords
+    public Vector3Int TargetCoords
     {
         get { return _targetCoords; }
 
-        set { if (_isOnPlace)
+        set { if (!_isMoving)
               {
                 _targetCoords = value;
-                _isOnPlace = false;
               };
         }
     }
 
-    private bool _isOnPlace;
+    private bool _isMoving;
 
     private Rigidbody2D _rb2d;
+    private SpriteRenderer _spriteRenderer;
+
+    //debug variables
+    static int turnCounter = 0;
+
 
     // Start is called before the first frame update
-    void Start()
+    protected void Start()
     {
         _rb2d = GetComponent<Rigidbody2D>();
-        _isOnPlace = true;
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        _isMoving = false;
+        OnMoveEnded.AddListener(() => { GridSystem.Instance.TakeTile(Coords); });
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (!_isOnPlace)
+        if (_isMoving)
         {
-            Vector3 targetWorldCoords = GridSystem.Instance.CurrentTilemap.GetCellCenterWorld(new Vector3Int(_targetCoords.x, _targetCoords.y, 0));
+            Vector3 targetWorldCoords = GridSystem.Instance.CurrentTilemap.GetCellCenterWorld(_targetCoords);
             Vector3 rotation = (targetWorldCoords - _rb2d.transform.position).normalized;
             float distance = (targetWorldCoords - _rb2d.transform.position).magnitude;
             Vector3 newWorldCoords = _rb2d.transform.position + rotation * /*distance* */ Speed * Time.fixedDeltaTime;
@@ -54,18 +63,78 @@ public class Character : MonoBehaviour
                 newWorldCoords = targetWorldCoords;
             }
 
+            //set new tilemap coordinations
+            Vector3Int newCoords = GridSystem.Instance.GetTilemapCoordsFromWorld(GridSystem.Instance.CurrentTilemap, newWorldCoords);
+            ++turnCounter;
+            if (Coords != newCoords)
+            {
+                Debug.Log($"{turnCounter}, {gameObject.name} Old Coords: ({Coords.x},{Coords.y})");
+                Debug.Log($"{turnCounter}, {gameObject.name} New Coords: ({newCoords.x},{newCoords.y})");
+                Debug.Log($"{turnCounter}, {gameObject.name} Distance: {distance}");
+                int tileStatus = GridSystem.Instance.IsTileAvailable(newCoords);
+                if (tileStatus == 0)
+                {
+                    Debug.Log($"{turnCounter}, {gameObject.name} Successful turn");
+                    Debug.Log($"{turnCounter}, {gameObject.name} Tile will be realeased: ({Coords.x},{Coords.y})");
+                    GridSystem.Instance.ReleaseTile(Coords);
+                    Debug.Log($"{turnCounter}, {gameObject.name} Tile was realeased: ({Coords.x},{Coords.y})");
+                    Coords = newCoords;
+                    Debug.Log($"{turnCounter}, {gameObject.name} Tile will be taken: ({Coords.x},{Coords.y})");
+                    GridSystem.Instance.TakeTile(Coords);
+                    Debug.Log($"{turnCounter}, {gameObject.name} Tile was taken: ({Coords.x},{Coords.y})");
+                }
+                else if (tileStatus == 2)
+                {
+                    Debug.Log($"{turnCounter}, {gameObject.name} Attack turn");
+                    Character character = GameController.Instance.FindCharacter(newCoords);
+                    character.Stop();
+                    Debug.Log($"{turnCounter}, {gameObject.name} Another character stopped");
+                    character.TakeDamage(Damage);
+                    Stop();
+                    Debug.Log($"{turnCounter}, {gameObject.name} Character stopped");
+                }
+            }
+            //Debug.Log($"New coords: ({Coords.x},{Coords.y})");
             _rb2d.transform.position = newWorldCoords;
 
             //check end of moving 
             if (distance < 0.01f)
             {
-                _isOnPlace = true;
+                _isMoving = false;
                 OnMoveEnded.Invoke();
             }
-            //set new tilemap coordinations
-            Vector3Int newCoords = GridSystem.Instance.GetTilemapCoordsFromWorld(GridSystem.Instance.CurrentTilemap, _rb2d.transform.position);
-            _coords.x = newCoords.x;
-            _coords.y = newCoords.y;
         }
+    }
+
+    public void Move()
+    {
+        GridSystem.Instance.ReleaseTile(Coords);
+        _isMoving = true;
+    }
+
+    public void Stop()
+    {
+        _targetCoords = Coords;
+    }
+
+    public void TakeDamage(int damage)
+    {
+        Health -= damage;
+        OnDamageTaken.Invoke();
+        StartCoroutine(DamageAnimation());
+        if (Health <= 0)
+        {
+            gameObject.SetActive(false);
+            GridSystem.Instance.ReleaseTile(Coords);
+            OnDie.Invoke();
+        }
+    }
+
+    private IEnumerator DamageAnimation()
+    {
+        Color color = _spriteRenderer.color;
+        _spriteRenderer.color = new Color(255, 0, 0);
+        yield return new WaitForSeconds(0.5f);
+        _spriteRenderer.color = color;
     }
 }

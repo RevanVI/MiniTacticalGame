@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 185568e19297be947a76d5b78b743269, type: 3}
-  m_Name: lavaBlockedTile
+  m_Name: CommonCageFloor
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: 6794009879101472226, guid: 629cc323e463b67499feba09a306b85a,
+  m_Sprite: {fileID: -2018807642888200921, guid: 629cc323e463b67499feba09a306b85a,
     type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
@@ -35,5 +35,5 @@ MonoBehaviour:
   m_InstancedGameObject: {fileID: 0}
   m_Flags: 0
   m_ColliderType: 0
-  isBlock: 1
+  isBlock: 0
   isTaken: 0

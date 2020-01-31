@@ -10,7 +10,7 @@ using UnityEditor;
 public class RoadTile : Tile
 {
     public bool isBlock;
-
+    public bool isTaken;
 
 #if UNITY_EDITOR
     // The following is a helper that adds a menu item to create a RoadTile Asset
