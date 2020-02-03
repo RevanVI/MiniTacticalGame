@@ -8,6 +8,7 @@ public class Character : MonoBehaviour
 {
     public int MoveDistance;
     public int Health;
+    public int MaxHealth;
     public int Damage;
     public float Speed;
     public int Length;
@@ -34,7 +35,7 @@ public class Character : MonoBehaviour
 
     private Rigidbody2D _rb2d;
     private SpriteRenderer _spriteRenderer;
-
+    private Transform _hpBar;
     //debug variables
     static int turnCounter = 0;
 
@@ -44,6 +45,8 @@ public class Character : MonoBehaviour
     {
         _rb2d = GetComponent<Rigidbody2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        Transform HealthBar = transform.Find("HealthBar");
+        _hpBar = HealthBar.Find("Hp");
         _isMoving = false;
         OnMoveEnded.AddListener(() => { GridSystem.Instance.TakeTile(Coords); });
     }
@@ -121,6 +124,7 @@ public class Character : MonoBehaviour
     {
         Health -= damage;
         OnDamageTaken.Invoke();
+        UpdateHPBar();
         StartCoroutine(DamageAnimation());
         if (Health <= 0)
         {
@@ -136,5 +140,11 @@ public class Character : MonoBehaviour
         _spriteRenderer.color = new Color(255, 0, 0);
         yield return new WaitForSeconds(0.5f);
         _spriteRenderer.color = color;
+    }
+
+    private void UpdateHPBar()
+    {
+        float hpPercent = (float)Health / MaxHealth;
+        _hpBar.localScale = new Vector3(hpPercent, _hpBar.localScale.y, _hpBar.localScale.z);
     }
 }

@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyController : Character
+public class Caveman : EnemyController
 {
-
-    public void ChooseMovement()
+    override public void ChooseMovement()
     {
         List<Vector3Int> moveMap = GridSystem.Instance.GetMoveMap(Length, Coords);
         int index = Random.Range(0, moveMap.Count);
